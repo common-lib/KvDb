@@ -1,4 +1,3 @@
-import com.twitter.util.Future
 import org.nutz.ssdb4j.spi.SSDB
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -12,15 +11,11 @@ trait KV[Key, Value] {
 
   def add(k: Key, v: Value): Future[Boolean]
 
-  def madd(k: Key, v: Value): Future[Map[Key, Boolean]]
-
-  def update(k: Key, v: Value): Future[Boolean]
-
-  def mupdate(k: Key, v: Value): Future[Map[Key, Boolean]]
+  def madd(arrKeyAndValue: Any*): Future[Boolean]
 
   def remove(key: Key): Future[Boolean]
 
-  def mremove(key: Key): Future[Map[Key, Boolean]]
+  def mremove(keys: Key*): Future[Boolean]
 
   def size(): Future[Int]
 
@@ -37,7 +32,7 @@ trait SortedSet[Key, Value] {
 
   def add(k: Key, v: Value): Future[Boolean]
 
-  def madd(k: Key, v: Value): Future[Map[Key, Boolean]]
+  def madd(k: Key, v: Value): Future[Boolean]
 
   def update(k: Key, v: Value): Future[Boolean]
 
@@ -50,11 +45,11 @@ trait SortedSet[Key, Value] {
 }
 
 
-case class SsdbKV[Key, Value](client: SSDB)(implicit ec: ExecutionContext = ExecutionContext.global) extends KV[Key, Value] {
+case class SsdbKV[Key, Value](dbName: String, client: SSDB)(implicit ec: ExecutionContext = ExecutionContext.global) extends KV[Key, Value] {
 
   override def get(key: Key): Future[Option[Value]] = {
     Future {
-      val resp = client.get(key)
+      val resp = client.hget(dbName, key)
       if (resp.ok()) {
         Some(resp.asInstanceOf[Value])
       }
@@ -64,27 +59,52 @@ case class SsdbKV[Key, Value](client: SSDB)(implicit ec: ExecutionContext = Exec
 
   override def mget(keys: Key*): Future[Option[Map[Key, Value]]] = {
     Future {
-      val resp = client.multi_get(keys)
-      if (resp.ok()) Some(resp.asInstanceOf[Value])
+      val resp = client.multi_hget(dbName, keys)
+      if (resp.ok()) Some(resp.asInstanceOf[Map[Key, Value]])
       None
     }
   }
 
   override def add(k: Key, v: Value): Future[Boolean] = {
-
+    Future {
+      client.hset(dbName, k, v).ok()
+    }
   }
 
-  override def madd(k: Key, v: Value): Future[Map[Key, Boolean]] = ???
 
-  override def update(k: Key, v: Value): Future[Boolean] = ???
+  /**
+    * ex: SSDB::madd(k1,v1,k2,v2,k3,v3)
+    *
+    * @param arrKeyAndValue
+    * @return
+    */
+  override def madd(arrKeyAndValue: Any*): Future[Boolean] = {
+    Future {
+      client.multi_hset(dbName, arrKeyAndValue).ok()
+    }
+  }
 
-  override def mupdate(k: Key, v: Value): Future[Map[Key, Boolean]] = ???
+  override def remove(key: Key): Future[Boolean] = {
+    Future {
+      client.multi_hdel(dbName, key).ok()
+    }
+  }
 
-  override def remove(key: Key): Future[Boolean] = ???
+  override def mremove(keys: Key*): Future[Boolean] = {
+    Future {
+      client.multi_hdel(dbName, keys).ok()
+    }
+  }
 
-  override def mremove(key: Key): Future[Map[Key, Boolean]] = ???
+  override def size(): Future[Int] = {
+    Future {
+      client.hsize(dbName).asInt()
+    }
+  }
 
-  override def size(): Future[Int] = ???
-
-  override def clear(): Future[Boolean] = ???
+  override def clear(): Future[Boolean] = {
+    Future {
+      client.hclear(dbName).ok()
+    }
+  }
 }
