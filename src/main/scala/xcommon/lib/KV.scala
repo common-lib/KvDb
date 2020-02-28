@@ -1,3 +1,5 @@
+package xcommon.lib
+
 import org.nutz.ssdb4j.spi.SSDB
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -21,26 +23,6 @@ trait KV[Key, Value] {
 
   def clear(): Future[Boolean]
 
-
-}
-
-trait SortedSet[Key, Value] {
-
-  def get(key: Key): Future[Option[Value]]
-
-  def mget(keys: Key*): Future[Option[Map[Key, Value]]]
-
-  def add(k: Key, v: Value): Future[Boolean]
-
-  def madd(k: Key, v: Value): Future[Boolean]
-
-  def update(k: Key, v: Value): Future[Boolean]
-
-  def mupdate(k: Key, v: Value): Future[Map[Key, Boolean]]
-
-  def remove(key: Key): Future[Boolean]
-
-  def mremove(key: Key): Future[Map[Key, Boolean]]
 
 }
 
