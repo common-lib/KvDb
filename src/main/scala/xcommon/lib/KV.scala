@@ -19,7 +19,7 @@ trait KV[Key, Value] {
 
   def mremove(keys: Key*): Future[Boolean]
 
-  def size(): Future[Int]
+  def size(): Future[Option[Int]]
 
   def clear(): Future[Boolean]
 
@@ -27,7 +27,7 @@ trait KV[Key, Value] {
 }
 
 
-case class SsdbKV[Key, Value](dbName: String, client: SSDB)(implicit ec: ExecutionContext = ExecutionContext.global) extends KV[Key, Value] {
+case class KVDbImpl[Key, Value](dbName: String, client: SSDB)(implicit ec: ExecutionContext = ExecutionContext.global) extends KV[Key, Value] {
 
   override def get(key: Key): Future[Option[Value]] = {
     Future {

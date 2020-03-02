@@ -24,6 +24,8 @@ trait SortedSet[Key, Value] {
 
   def clear(): Future[Boolean]
 
+  def size(): Future[Option[Int]]
+
 }
 
 /** *
@@ -33,7 +35,8 @@ trait SortedSet[Key, Value] {
   * @param ec
   */
 
-case class SsdbSortedSet(dbName: String, client: SSDB)(implicit ec: ExecutionContext = ExecutionContext.global) extends KV[String, Long] {
+case class SsdbSortedSet(dbName: String, client: SSDB)(implicit ec: ExecutionContext = ExecutionContext.global)
+  extends SortedSet[String, Long] {
   override def get(key: String): Future[Option[Long]] = {
     Future {
       val resp = client.zget(dbName, key)
@@ -77,9 +80,11 @@ case class SsdbSortedSet(dbName: String, client: SSDB)(implicit ec: ExecutionCon
     }
   }
 
-  override def size(): Future[Int] = {
+  override def size(): Future[Option[Int]] = {
     Future {
-      client.zsize(dbName).asInt()
+      val resp = client.zsize(dbName)
+      if(resp.ok()) Some(resp.asInt())
+      else None
     }
   }
 
